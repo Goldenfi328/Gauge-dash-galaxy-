@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Gauge Dash Empire 🔥</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(to bottom, #001122, #ffaa00);
+      font-family: 'Arial', sans-serif;
+      overflow: hidden;
+      touch-action: none;
+      color: #FFD700;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(circle at 50% 80%, rgba(255,215,0,0.3) 0%, transparent 70%);
+      animation: fireGlow 3s ease-in-out infinite alternate;
+      pointer-events: none;
+      z-index: 0;
+    }
+    @keyframes fireGlow { from { opacity: 0.4; } to { opacity: 0.8; } }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+    @keyframes slideIn { from{transform:translateY(-100%)} to{transform:translateY(0)} }
+   .shake { animation: shake 0.3s; }
+   .cutscene { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10; display:none; justify-content:center; align-items:center; flex-direction:column; animation:slideIn 0.5s; }
+
+    #game { background: transparent; display: block; margin: 0 auto; position: relative; z-index: 2; }
+    #fire { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 1; }
+    #score { position: absolute; top: 20px; left: 20px; color: #FFD700; font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #000; }
+    #diamonds { position: absolute; top: 20px; right: 20px; color: gold; font-size: 18px; font-weight: bold; text-shadow: 0 0 10px gold; }
+    #coins { position: absolute; top: 45px; right: 20px; color: #FFD700; font-size: 14px; font-weight: bold; }
+    #level { position: absolute; top: 45px; left: 20px; color: #fff; font-size: 14px; text-shadow: 0 0 5px #000; }
+    #powerUp { position: absolute; top: 65px; left: 20px; color: #00FF00; font-size: 12px; font-weight: bold; }
+    #character { position: absolute; top: 85px; left: 20px; color: #FFD700; font-size: 12px; font-weight: bold; }
+    #gameOver { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #FFD700; font-size: 24px; text-align: center; display: none; background: rgba(0,0,0,0.95); padding: 20px; border-radius: 12px; border: 2px solid #FFD700; width: 90%; max-width: 320px; z-index: 3; }
+    #gameOver button { margin: 5px; padding: 10px 18px; font-size: 14px; background: #FFD700; color: #000; border: none; border-radius: 8px; font-weight: bold; }
+    #title { position: absolute; top: 50px; width: 100%; text-align: center; font-size: 32px; font-weight: bold; color: #FFD700; text-shadow: 0 0 15px #ffaa00; z-index: 3; }
+    #menu { position: absolute; top: 80px; width: 100%; text-align: center; z-index: 3; }
+    #menu button { margin: 5px; padding: 8px 12px; background: linear-gradient(45deg, #0057B8, #FFD700); color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; }
+    #shop, #leaderboard, #daily, #characters { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 20px; border-radius: 12px; border: 2px solid #FFD700; text-align: center; z-index: 3; width: 90%; max-width: 320px; }
+   .char-btn { margin:5px; padding:10px; background:#333; border:2px solid #FFD700; border-radius:8px; color:#FFD700; cursor:pointer; width:90%; }
+   .char-btn.selected { background:#FFD700; color:#000; }
+  </style>
+</head>
+<body>
+  <div id="title">GAUGE DASH EMPIRE</div>
+  <div id="menu">
+    <button onclick="openCharacters()">Characters 👤</button>
+    <button onclick="openDaily()">Daily 🎁</button>
+    <button onclick="openLeaderboard()">Top 10</button>
+    <button onclick="openShop()">Shop 💎</button>
+  </div>
+  <div id="score">Score: 0</div>
+  <div id="diamonds">💎 0</div>
+  <div id="coins">🪙 0</div>
+  <div id="level">Level: Lagos</div>
+  <div id="character">Char: Hustler</div>
+  <div id="powerUp"></div>
+  <div id="gameOver"></div>
+  <div id="shop"></div>
+  <div id="leaderboard"></div>
+  <div id="daily"></div>
+  <div id="characters"></div>
+
+  <div class="cutscene" id="cutscene">
+    <h2 id="cutsceneText" style="font-size:28px; text-align:center;"></h2>
+    <button onclick="closeCutscene()" style="margin-top:20px; padding:10px 20px; background:#FFD700; border:none; border-radius:8px; font-weight:bold;">CONTINUE</button>
+  </div>
+
+  <canvas id="fire"></canvas>
+  <canvas id="game"></canvas>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const diamondsEl = document.getElementById('diamonds');
+    const coinsEl = document.getElementById('coins');
+    const levelEl = document.getElementById('level');
+    const charEl = document.getElementById('character');
+    const gameOverEl = document.getElementById('gameOver');
+    const titleEl = document.getElementById('title');
+    const menuEl = document.getElementById('menu');
+    const powerUpEl = document.getElementById('powerUp');
+    const shopEl = document.getElementById('shop');
+    const leaderboardEl = document.getElementById('leaderboard');
+    const dailyEl = document.getElementById('daily');
+    const charactersEl = document.getElementById('characters');
+    const cutsceneEl = document.getElementById('cutscene');
+    const cutsceneText = document.getElementById('cutsceneText');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // FIRE PARTICLES
+    const fireCanvas = document.getElementById('fire');
+    const fctx = fireCanvas.getContext('2d');
+    fireCanvas.width = window.innerWidth; fireCanvas.height = window.innerHeight;
+    let fireParticles = [];
+    function spawnFire() { fireParticles.push({x: Math.random()*fireCanvas.width, y: fireCanvas.height, r: Math.random()*3+1, speed: Math.random()*2+1}); }
+    setInterval(spawnFire, 100);
+    function animateFire() {
+      fctx.clearRect(0,0,fireCanvas.width,fireCanvas.height);
+      fireParticles.forEach(p => { p.y -= p.speed; fctx.beginPath(); fctx.arc(p.x, p.y, p.r, 0, Math.PI*2); fctx.fillStyle = 'rgba(255,215,0,0.6)'; fctx.fill(); });
+      fireParticles = fireParticles.filter(p => p.y > 0);
+      requestAnimationFrame(animateFire);
+    }
+    animateFire();
+
+    let gameRunning = true, gameStarted = false, score = 0, speed = 6, frame = 0;
+    let roadOffset = 0, stationOffset = 0, jumpCount = 0, baseSpeed = 6;
+    let animFrame = 0, animTimer = 0, speedBoost = false, speedTimer = 0;
+    let totalDiamonds = parseInt(localStorage.getItem('gdDiamonds') || '0');
+    let totalCoins = parseInt(localStorage.getItem('gdCoins') || '0');
+    let highScore = parseInt(localStorage.getItem('gdHigh') || '0');
+    let lastDaily = localStorage.getItem('gdDaily') || '0';
+    let leaderboard = JSON.parse(localStorage.getItem('gdBoard') || '[]');
+    let ghostData = JSON.parse(localStorage.getItem('gdGhost') || '[]');
+    let currentGhostFrame = 0;
+    let adFree = localStorage.getItem('gdAdFree') === 'true';
+    diamondsEl.textContent = `💎 ${totalDiamonds}`;
+    coinsEl.textContent = `🪙 ${totalCoins}`;
+
+    // 4 DIFFERENT CHARACTERS WITH SPECIAL POWERS
+    const characters = [
+      {name: 'Hustler', power: 'Double Jump', color: '#1E90FF', desc: 'Can double jump after 300pts'},
+      {name: 'CEO', power: 'Money Magnet', color: '#FFD700', desc: 'Attracts coins 2x farther'},
+      {name: 'Engineer', power: 'Shield Start', color: '#00FF00', desc: 'Starts with shield'},
+      {name: 'Warrior', power: 'Speed Boost', color: '#FF4500', desc: '10% faster movement'}
+    ];
+    let selectedChar = parseInt(localStorage.getItem('gdChar') || '0');
+    charEl.textContent = `Char: ${characters[selectedChar].name}`;
+
+    const levels = [
+      {name: 'Lagos', bg: 'rgba(135,206,235,0.3)', road: '#1E90FF', station: '#0057B8', cutscene: 'WELCOME TO LAGOS! Time to hustle 💼'},
+      {name: 'Abuja', bg: 'rgba(245,222,179,0.3)', road: '#8B4513', station: '#A0522D', cutscene: 'ABUJA UNLOCKED! CEO mode activated 👔'},
+      {name: 'Port Harcourt', bg: 'rgba(70,130,180,0.3)', road: '#000080', station: '#0000CD', cutscene: 'PH BOSS AHEAD! Oil rigs everywhere 🛢️'},
+      {name: 'Warri', bg: 'rgba(34,139,34,0.3)', road: '#228B22', station: '#006400', cutscene: 'WARRI FINAL BOSS! This is for the Empire! 🔥'}
+    ];
+    let currentLevel = 0;
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+      if(type === 'jump') { osc.frequency.setValueAtTime(600, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 0.1); }
+      if(type === 'coin') { osc.frequency.setValueAtTime(900, audioCtx.currentTime); osc.frequency.setValueAtTime(1200, audioCtx.currentTime + 0.05); }
+      if(type === 'power') { osc.frequency.setValueAtTime(400, audioCtx.currentTime); osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.1); }
+      if(type === 'boss') { osc.frequency.setValueAtTime(150, audioCtx.currentTime); }
+      if(type === 'die') { osc.frequency.setValueAtTime(200, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.3); }
+      osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+    }
+
+    const player = { x: 80, y: canvas.height - 100, width: 50, height: 50, vy: 0, jumping: false, hasJetpack: false, hasMagnet: false, hasShield: false };
+    const ground = canvas.height - 60;
+    let obstacles = []; let diamonds = []; let powerUps = []; let coins = []; let boss = null;
+    let playerRecord = []; // FOR GHOST
+
+    canvas.addEventListener('touchstart', startOrJump);
+    canvas.addEventListener('mousedown', startOrJump);
+
+    function startOrJump() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if (!gameStarted) { gameStarted = true; titleEl.style.display = 'none'; menuEl.style.display = 'none'; if(selectedChar === 2) player.hasShield = true; return; }
+      const finalScore = Math.floor(score / 10);
+      const canDoubleJump = finalScore >= 300 || selectedChar === 0; // Hustler can always double jump
+      if (!player.jumping || (canDoubleJump && jumpCount < 2)) {
+        player.vy = player.hasJetpack? -22 : -18; player.jumping = true; jumpCount++;
+        navigator.vibrate(30); playSound('jump');
+      }
+    }
+
+    function showCutscene(text) {
+      cutsceneText.textContent = text;
+      cutsceneEl.style.display = 'flex';
+      gameRunning = false;
+    }
+    function closeCutscene() { cutsceneEl.style.display = 'none'; gameRunning = true; gameLoop(); }
+
+    function checkLevelUp() {
+      const finalScore = Math.floor(score / 10);
+      let newLevel = currentLevel;
+      if(finalScore >= 2000) newLevel = 3;
+      else if(finalScore >= 1500) newLevel = 2;
+      else if(finalScore >= 500) newLevel = 1;
+
+      if(newLevel!== currentLevel) {
+        currentLevel = newLevel;
+        levelEl.textContent = `Level: ${levels[currentLevel].name}`;
+        playSound('power');
+        document.body.classList.add('shake');
+        setTimeout(() => document.body.classList.remove('shake'), 300);
+        showCutscene(levels[currentLevel].cutscene);
+
+        if(currentLevel === 2) { boss = { x: canvas.width, y: ground - 100, width: 100, height: 100, hp: 10, type: 'PH' }; }
+        if(currentLevel === 3) { boss = { x: canvas.width, y: ground - 120, width: 120, height: 120, hp: 15, type: 'WARRI' }; }
+      }
+    }
+
+    function spawnObstacle() { obstacles.push({ x: canvas.width, y: ground - 40, width: 35, height: 40 }); }
+    function spawnDiamond() { diamonds.push({ x: canvas.width, y: ground - 100 - Math.random() * 100, width: 20, height: 20 }); }
+    function spawnCoin() { coins.push({ x: canvas.width, y: ground - 80 - Math.random() * 60, width: 15, height: 15 }); }
+    function spawnPowerUp() { const types = ['jetpack', 'magnet', 'shield', 'speed']; powerUps.push({ x: canvas.width, y: ground - 80, width: 25, height: 25, type: types[Math.floor(Math.random()*4)] }); }
+
+    function update() {
+      if (!gameRunning ||!gameStarted) return;
+      frame++; score++;
+      const finalScore = Math.floor(score / 10);
+      scoreEl.textContent = `Score: ${finalScore}`;
+
+      // RECORD GHOST DATA
+      if(frame % 5 === 0) playerRecord.push({x: player.x, y: player.y});
+
+      let charSpeed = baseSpeed;
+      if(selectedChar === 3) charSpeed *= 1.1; // Warrior 10% faster
+      if(speedBoost) { speedTimer--; speed = charSpeed * 1.8; if(speedTimer <= 0) { speedBoost = false; speed = charSpeed; } } else { speed = charSpeed; }
+      if (frame % 500 === 0) { baseSpeed += 0.5; }
+
+      checkLevelUp();
+
+      if(boss) {
+        boss.x -= speed * 0.8;
+        if(player.x < boss.x + boss.width && player.x + player.width > boss.x && player.y < boss.y + boss.height && player.y + player.height > boss.y) {
+          if(player.hasShield) { player.hasShield = false; boss.hp--; playSound('power'); if(boss.hp <= 0) { boss = null; totalDiamonds += boss.type === 'WARRI'? 200 : 100; } }
+          else { gameOver(); }
+        }
+        if(boss.x + boss.width < 0) boss = null;
+      }
+
+      if (!player.jumping) { animTimer++; if (animTimer > 6) { animFrame = (animFrame + 1) % 4; animTimer = 0; } else { animFrame = 1; }
+
+      roadOffset = (roadOffset + speed) % 40;
+      stationOffset = (stationOffset + speed * 0.5) % 500;
+
+      player.vy += 0.9; player.y += player.vy;
+      if (player.y > ground - player.height) { player.y = ground - player.height; player.vy = 0; player.jumping = false; jumpCount = 0; }
+
+      if (frame % 80 === 0) spawnObstacle();
+      if (frame % 120 === 0) spawnDiamond();
+      if (frame % 100 === 0) spawnCoin();
+      if (frame % 350 === 0) spawnPowerUp();
+
+      let magnetRange = selectedChar === 1? 200 : 100; // CEO 2x magnet
+      if(player.hasMagnet) { diamonds.forEach(d => { if(Math.abs(d.x - player.x) < magnetRange) d.x -= speed * 1.5; }); coins.forEach(c => { if(Math.abs(c.x - player.x) < magnetRange) c.x -= speed * 1.5; }); }
+
+      obstacles.forEach((obs, i) => {
+        obs.x -= speed;
+        if (player.x < obs.x + obs.width && player.x + player.width > obs.x && player.y < obs.y + obs.height && player.y + player.height > obs.y) {
+          if(player.hasShield) { player.hasShield = false; obstacles.splice(i,1); playSound('power'); }
+          else { gameOver(); }
+        }
+        if (obs.x + obs.width < 0) obstacles.splice(i, 1);
+      });
+
+      diamonds.forEach((d, i) => {
+        d.x -= speed;
+        if (player.x < d.x + d.width && player.x + player.width > d.x && player.y < d.y + d.height && player.y + player.height > d.y) {
+          score += 100; totalDiamonds++; diamonds.splice(i, 1); diamondsEl.textContent = `💎 ${totalDiamonds}`; playSound('coin');
+        }
+        if (d.x + d.width < 0) diamonds.splice(i, 1);
+      });
+
+      coins.forEach((c, i) => {
+        c.x -= speed;
+        if (player.x < c.x + c.width && player.x + player.width > c.x && player.y < c.y + c.height && player.y + player.height > c.y) {
+          score += 10; totalCoins++; coins.splice(i, 1); coinsEl.textContent = `🪙 ${totalCoins}`; playSound('coin');
+        }
+        if (c.x + c.width < 0) coins.splice(i, 1);
+      });
+
+      powerUps.forEach((p, i) => {
+        p.x -= speed;
+        if (player.x < p.x + p.width && player.x + player.width > p.x && player.y < p.y + p.height && player.y + player.height > p.y) {
+          player.hasJetpack = player.hasMagnet = player.hasShield = false; speedBoost = false;
+          if(p.type === 'jetpack') player.hasJetpack = true;
+          if(p.type === 'magnet') player.hasMagnet = true;
+          if(p.type === 'shield') player.hasShield = true;
+          if(p.type === 'speed') { speedBoost = true; speedTimer = 300; }
+          powerUpEl.textContent = p.type.toUpperCase();
+          playSound('power');
+          setTimeout(() => { player.hasJetpack = player.hasMagnet = player.hasShield = false; powerUpEl.textContent = ''; }, 5000);
+          powerUps.splice(i, 1);
+        }
+        if (p.x + p.width < 0) powerUps.splice(i, 1);
+      });
+    }
+
+    function drawStation(x, y, w, h) {
+      const L = levels[currentLevel];
+      ctx.fillStyle = L.station; ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = '#FFFFFF'; ctx.fillRect(x, y, w, 15);
+      ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
+      ctx.fillText('PAMTECH', x + w/2, y + 12);
+      ctx.font = 'bold 8px Arial'; ctx.fillText('OIL & GAS', x + w/2, y + 22);
+      ctx.font = '22px Arial'; ctx.fillText('⛽', x + w/2, y + h - 15);
+      ctx.fillStyle = '#003366'; ctx.fillRect(x - 10, y - 20, w + 20, 20);
+    }
+
+    function drawHustler(x, y, w, h, frame, color, alpha = 1) {
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = color; ctx.fillRect(x + 15, y + 20, 20, 20);
+      ctx.fillStyle = '#333'; ctx.fillRect(x + 15, y + 35, 20, 15);
+      ctx.fillStyle = '#8B4513'; ctx.beginPath(); ctx.arc(x + 25, y + 10, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#333';
+      if(frame === 0) { ctx.fillRect(x + 18, y + 45, 6, 5); ctx.fillRect(x + 30, y + 48, 6, 2); }
+      if(frame === 1) { ctx.fillRect(x + 18, y + 48, 6, 2); ctx.fillRect(x + 30, y + 48, 6, 2); }
+      if(frame === 2) { ctx.fillRect(x + 18, y + 48, 6, 2); ctx.fillRect(x + 30, y + 45, 6, 5); }
+      if(frame === 3) { ctx.fillRect(x + 18, y + 45, 6, 5); ctx.fillRect(x + 30, y + 45, 6, 5); }
+      ctx.fillStyle = color; ctx.fillRect(x + 10, y + 25, 8, 4); ctx.fillRect(x + 32, y + 25, 8, 4);
+      if(player.hasShield) { ctx.strokeStyle = '#00FFFF'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x+25, y+25, 30, 0, Math.PI*2); ctx.stroke(); }
+      if(player.hasJetpack) { ctx.fillStyle = '#FF4500'; ctx.fillRect(x+20, y+50, 10, 8); }
+      if(speedBoost) { ctx.fillStyle = 'rgba(255,255,0,0.3)'; ctx.fillRect(x-5, y, w+10, h); }
+      ctx.globalAlpha = 1;
+    }
+
+    function draw() {
+      const L = levels[currentLevel];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = L.bg; ctx.fillRect(0, 0, canvas.width, ground);
+      for(let i = -500; i < canvas.width + 500; i += 500) { drawStation(i - stationOffset, ground - 110, 100, 110); }
+      ctx.fillStyle = 'rgba(43,43,43,0.8)'; ctx.fillRect(0, ground, canvas.width, canvas.height - ground);
+      ctx.strokeStyle = L.road; ctx.lineWidth = 4; ctx.setLineDash([20, 20]); ctx.lineDashOffset = -roadOffset;
+      ctx.beginPath(); ctx.moveTo(0, ground + 20); ctx.lineTo(canvas.width, ground + 20); ctx.stroke(); ctx.setLineDash([]);
+
+      // DRAW GHOST
+      if(ghostData.length > 0 && currentGhostFrame < ghostData.length) {
+        let ghost = ghostData[currentGhostFrame];
+        drawHustler(ghost.x, ghost.y, 50, 50, animFrame, '#888', 0.3);
+        currentGhostFrame++;
+      }
+
+      drawHustler(player.x, player.y, player.width, player.height, animFrame, characters[selectedChar].color);
+
+      if(boss) {
+        ctx.fillStyle = boss.type === 'WARRI'? '#006400' : '#8B0000'; ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
+        ctx.font = boss.type === 'WARRI'? '60px Arial' : '50px Arial'; ctx.fillText('🛢️', boss.x+25, boss.y+60);
+        ctx.fillStyle = '#FFD700'; ctx.font = '12px Arial'; ctx.fillText(boss.type + ' BOSS', boss.x+20, boss.y-5);
+        ctx.fillStyle = 'red'; ctx.fillRect(boss.x, boss.y-15, boss.width, 8);
+        ctx.fillStyle = 'lime'; ctx.fillRect(boss.x, boss.y-15, boss.width * (boss.hp / (boss.type === 'WARRI'? 15 : 10)), 8);
+      }
+
+      ctx.font = '35px Aria
